@@ -131,44 +131,46 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         schema: 'public', 
         table: 'chats' 
       }, async (payload) => {
-        // Check if this is a chat the user is part of
-        const { data } = await supabase
-          .from('chat_members')
-          .select('chat_id')
-          .eq('chat_id', payload.new.id)
-          .eq('user_id', user.id)
-          .single();
-          
-        if (data) {
-          // Refresh chats
-          const { data: updatedChat } = await supabase
-            .from('chats')
-            .select('*')
-            .eq('id', payload.new.id)
+        if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+          // Check if this is a chat the user is part of
+          const { data } = await supabase
+            .from('chat_members')
+            .select('chat_id')
+            .eq('chat_id', payload.new.id)
+            .eq('user_id', user.id)
             .single();
             
-          if (updatedChat) {
-            setChats(prev => {
-              const exists = prev.some(chat => chat.id === updatedChat.id);
-              if (exists) {
-                return prev.map(chat => 
-                  chat.id === updatedChat.id ? updatedChat : chat
-                );
-              } else {
-                return [...prev, updatedChat];
-              }
-            });
-            
-            setFilteredChats(prev => {
-              const exists = prev.some(chat => chat.id === updatedChat.id);
-              if (exists) {
-                return prev.map(chat => 
-                  chat.id === updatedChat.id ? updatedChat : chat
-                );
-              } else {
-                return [...prev, updatedChat];
-              }
-            });
+          if (data) {
+            // Refresh chats
+            const { data: updatedChat } = await supabase
+              .from('chats')
+              .select('*')
+              .eq('id', payload.new.id)
+              .single();
+              
+            if (updatedChat) {
+              setChats(prev => {
+                const exists = prev.some(chat => chat.id === updatedChat.id);
+                if (exists) {
+                  return prev.map(chat => 
+                    chat.id === updatedChat.id ? updatedChat : chat
+                  );
+                } else {
+                  return [...prev, updatedChat];
+                }
+              });
+              
+              setFilteredChats(prev => {
+                const exists = prev.some(chat => chat.id === updatedChat.id);
+                if (exists) {
+                  return prev.map(chat => 
+                    chat.id === updatedChat.id ? updatedChat : chat
+                  );
+                } else {
+                  return [...prev, updatedChat];
+                }
+              });
+            }
           }
         }
       })
