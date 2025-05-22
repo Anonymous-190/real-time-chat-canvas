@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -24,6 +25,21 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				whatsapp: {
+					green: '#25D366',
+					light: '#DCF8C6',
+					teal: '#128C7E',
+					blue: '#34B7F1',
+					dark: '#075E54'
+				},
+				chat: {
+					bg: '#F0F2F5',
+					bubble: {
+						sent: '#DCF8C6',
+						received: '#FFFFFF'
+					},
+					border: '#E9EDEF'
+				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
