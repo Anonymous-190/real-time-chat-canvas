@@ -1,6 +1,6 @@
 
 import { useState, useRef } from "react";
-import { useChats } from "@/context/ChatsContext";
+import { useChats } from "@/context/chats";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Paperclip, Smile } from "lucide-react";

@@ -2,7 +2,7 @@
 import { ChatHeader } from "./ChatHeader";
 import { MessagesList } from "./MessagesList";
 import { MessageInput } from "./MessageInput";
-import { useChats } from "@/context/ChatsContext";
+import { useChats } from "@/context/chats";
 
 export function ChatView() {
   const { currentChat } = useChats();

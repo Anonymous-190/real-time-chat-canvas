@@ -1,5 +1,5 @@
 
-import { useChats } from "@/context/ChatsContext";
+import { useChats } from "@/context/chats";
 import { Search, MoreVertical, Phone, RefreshCw, HelpCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

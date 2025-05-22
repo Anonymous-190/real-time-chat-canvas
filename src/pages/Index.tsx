@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { ChatsSidebar } from "@/components/chat/ChatsSidebar";
 import { ChatView } from "@/components/chat/ChatView";
 import { useAuth } from "@/context/AuthContext";
-import { ChatsProvider } from "@/context/ChatsContext";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -42,12 +41,10 @@ const Index = () => {
   }
 
   return (
-    <ChatsProvider>
-      <div className="flex h-screen overflow-hidden bg-chat-bg">
-        <ChatsSidebar />
-        <ChatView />
-      </div>
-    </ChatsProvider>
+    <div className="flex h-screen overflow-hidden bg-chat-bg">
+      <ChatsSidebar />
+      <ChatView />
+    </div>
   );
 };
 
