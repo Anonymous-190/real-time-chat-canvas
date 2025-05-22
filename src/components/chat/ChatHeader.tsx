@@ -1,6 +1,6 @@
 
 import { useChats } from "@/context/ChatsContext";
-import { Search, MoreVertical, Phone, RefreshCw, Help } from "lucide-react";
+import { Search, MoreVertical, Phone, RefreshCw, HelpCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -51,7 +51,7 @@ export function ChatHeader() {
           <RefreshCw className="h-5 w-5" />
         </Button>
         <Button variant="ghost" size="icon" className="text-gray-600">
-          <Help className="h-5 w-5" />
+          <HelpCircle className="h-5 w-5" />
         </Button>
         <Button variant="ghost" size="icon" className="text-gray-600">
           <MoreVertical className="h-5 w-5" />
