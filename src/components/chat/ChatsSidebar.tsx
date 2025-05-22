@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useChats } from "@/context/ChatsContext";
+import { useChats } from "@/context/chats"; // Updated import path
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -1,5 +1,5 @@
 
-import { useChats } from "@/context/ChatsContext";
+import { useChats } from "@/context/chats"; // Updated import path
 import { useAuth } from "@/context/AuthContext";
 import { Message } from "@/types/chat";
 import { useState, useEffect, useRef } from "react";
