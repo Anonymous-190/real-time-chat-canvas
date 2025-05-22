@@ -23,11 +23,23 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [messageSubscription, setMessageSubscription] = useState<any>(null);
+  const [initialized, setInitialized] = useState(!!supabase);
+
+  // Display error if Supabase is not initialized
+  useEffect(() => {
+    if (!supabase) {
+      toast.error("Chat functionality unavailable. Supabase connection failed.");
+      setLoading(false);
+      setInitialized(false);
+    } else {
+      setInitialized(true);
+    }
+  }, []);
 
   // Fetch users
   useEffect(() => {
     const loadUsers = async () => {
-      if (!user) return;
+      if (!user || !initialized) return;
       
       try {
         const usersData = await fetchUsers();
@@ -38,12 +50,12 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     
     loadUsers();
-  }, [user]);
+  }, [user, initialized]);
 
   // Fetch chats
   useEffect(() => {
     const loadChats = async () => {
-      if (!user) return;
+      if (!user || !initialized) return;
       
       try {
         setLoading(true);
@@ -59,11 +71,11 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     
     loadChats();
-  }, [user]);
+  }, [user, initialized]);
 
   // Subscribe to chat changes
   useEffect(() => {
-    if (!user) return;
+    if (!user || !supabase || !initialized) return;
     
     const subscription = supabase
       .channel('public:chats')
@@ -118,14 +130,16 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .subscribe();
       
     return () => {
-      supabase.removeChannel(subscription);
+      if (supabase) {
+        supabase.removeChannel(subscription);
+      }
     };
-  }, [user]);
+  }, [user, initialized]);
 
   // Fetch messages when current chat changes
   useEffect(() => {
     const loadMessages = async () => {
-      if (!currentChat) return;
+      if (!currentChat || !initialized) return;
       
       try {
         const messagesData = await fetchChatMessages(currentChat.id);
@@ -139,12 +153,12 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadMessages();
     
     // Clean up previous subscription if any
-    if (messageSubscription) {
+    if (messageSubscription && supabase) {
       supabase.removeChannel(messageSubscription);
     }
     
     // Subscribe to message changes for current chat
-    if (currentChat) {
+    if (currentChat && supabase) {
       const subscription = supabase
         .channel(`messages:${currentChat.id}`)
         .on('postgres_changes', { 
@@ -161,14 +175,17 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     
     return () => {
-      if (messageSubscription) {
+      if (messageSubscription && supabase) {
         supabase.removeChannel(messageSubscription);
       }
     };
-  }, [currentChat]);
+  }, [currentChat, initialized]);
 
   const sendMessage = async (content: string, attachment?: File) => {
-    if (!currentChat || !user) return;
+    if (!currentChat || !user || !initialized) {
+      toast.error("Chat functionality unavailable");
+      return;
+    }
     
     try {
       await sendChatMessage(currentChat.id, user.id, content, attachment);

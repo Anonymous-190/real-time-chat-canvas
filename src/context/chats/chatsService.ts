@@ -4,19 +4,24 @@ import { Chat, Message } from '@/types/chat';
 import { toast } from '@/components/ui/sonner';
 
 // Get environment variables with fallbacks for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Validate Supabase configuration
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Supabase URL and Anon Key are required. Please check your environment variables.");
-  toast.error("Missing Supabase configuration. Please check the console for details.");
 }
 
-// Initialize Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Initialize Supabase client only if both URL and key are available
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export const fetchUsers = async () => {
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized");
+  }
+  
   const { data, error } = await supabase
     .from('users')
     .select('*');
@@ -27,6 +32,10 @@ export const fetchUsers = async () => {
 };
 
 export const fetchUserChats = async (userId: string) => {
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized");
+  }
+  
   // Get all chats where the current user is a member
   const { data: chatMembers, error: chatMembersError } = await supabase
     .from('chat_members')
@@ -76,6 +85,10 @@ export const fetchUserChats = async (userId: string) => {
 };
 
 export const fetchChatMessages = async (chatId: string) => {
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized");
+  }
+  
   const { data, error } = await supabase
     .from('messages')
     .select('*')
@@ -88,6 +101,10 @@ export const fetchChatMessages = async (chatId: string) => {
 };
 
 export const sendChatMessage = async (chatId: string, userId: string, content: string, attachment?: File) => {
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized");
+  }
+  
   let attachmentUrl;
   let attachmentType;
   
