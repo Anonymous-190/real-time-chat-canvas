@@ -4,19 +4,19 @@ import { Session, User, createClient } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/sonner";
 
-// Get environment variables with fallbacks for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Default to empty strings for development/testing
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Initialize Supabase client with validation
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Supabase URL and Anon Key are required. Please check your environment variables.");
-}
-
-// Initialize Supabase client only if both URL and key are available
-const supabase = supabaseUrl && supabaseAnonKey 
+// Initialize Supabase client
+const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
+
+// Log warning for missing credentials
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn("Supabase credentials missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.");
+}
 
 interface AuthContextProps {
   session: Session | null;
@@ -35,10 +35,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Display error message if Supabase is not initialized
+  // Display graceful message if Supabase is not initialized
   useEffect(() => {
     if (!supabase) {
-      toast.error("Supabase connection failed. Please check environment variables.");
+      toast.error("Supabase connection not configured. Please connect to Supabase.");
       setLoading(false);
     }
   }, []);
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       if (!supabase) {
-        toast.error("Authentication service unavailable");
+        toast.error("Authentication service unavailable. Please connect to Supabase.");
         return;
       }
       
@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, displayName: string) => {
     try {
       if (!supabase) {
-        toast.error("Authentication service unavailable");
+        toast.error("Authentication service unavailable. Please connect to Supabase.");
         return;
       }
       
@@ -162,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       if (!supabase) {
-        toast.error("Authentication service unavailable");
+        toast.error("Authentication service unavailable. Please connect to Supabase.");
         return;
       }
       
