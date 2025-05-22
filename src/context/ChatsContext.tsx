@@ -1,15 +1,21 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Chat, Message, User } from '@/types/chat';
 import { toast } from '@/components/ui/sonner';
 import { createClient } from '@supabase/supabase-js';
 
+// Get environment variables with fallbacks for development
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Validate Supabase configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Supabase URL and Anon Key are required. Please check your environment variables.");
+  toast.error("Missing Supabase configuration. Please check the console for details.");
+}
+
 // Initialize Supabase client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface ChatsContextProps {
   chats: Chat[];

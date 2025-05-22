@@ -1,14 +1,20 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User, createClient } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/sonner";
 
+// Get environment variables with fallbacks for development
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Initialize Supabase client with validation
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Supabase URL and Anon Key are required. Please check your environment variables.");
+  toast.error("Missing Supabase configuration. Please check the console for details.");
+}
+
 // Initialize Supabase client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AuthContextProps {
   session: Session | null;
