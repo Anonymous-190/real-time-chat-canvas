@@ -4,9 +4,11 @@ import { useChats } from "@/context/ChatsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Paperclip, Smile } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
 export function MessageInput() {
   const [message, setMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { sendMessage, currentChat } = useChats();
 
@@ -21,9 +23,22 @@ export function MessageInput() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // For now, just send the file name as a message
-      await sendMessage(`Sent file: ${file.name}`);
-      e.target.value = '';
+      try {
+        setIsUploading(true);
+        // File size validation (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error("File size exceeds 10MB limit");
+          return;
+        }
+        
+        await sendMessage(`Sent ${file.type.includes('image') ? 'an image' : 'a file'}: ${file.name}`, file);
+        toast.success("File uploaded successfully");
+      } catch (error) {
+        toast.error("Failed to upload file");
+      } finally {
+        setIsUploading(false);
+        e.target.value = '';
+      }
     }
   };
 
@@ -54,6 +69,7 @@ export function MessageInput() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type a message"
             className="rounded-full bg-chat-bg border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm py-6"
+            disabled={isUploading}
           />
         </div>
         
@@ -70,6 +86,7 @@ export function MessageInput() {
           size="icon" 
           className="text-gray-600"
           onClick={openFileDialog}
+          disabled={isUploading}
         >
           <Paperclip className="h-6 w-6" />
         </Button>
@@ -77,7 +94,7 @@ export function MessageInput() {
         <Button 
           type="submit" 
           size="icon" 
-          disabled={!message.trim()}
+          disabled={!message.trim() || isUploading}
           className="bg-whatsapp-teal hover:bg-whatsapp-dark text-white rounded-full h-10 w-10 flex items-center justify-center"
         >
           <Send className="h-5 w-5" />

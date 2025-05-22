@@ -3,6 +3,7 @@ import { useChats } from "@/context/ChatsContext";
 import { useAuth } from "@/context/AuthContext";
 import { Message } from "@/types/chat";
 import { useState, useEffect, useRef } from "react";
+import { File, Image } from "lucide-react";
 
 export function MessagesList() {
   const { messages, users, currentChat } = useChats();
@@ -35,6 +36,47 @@ export function MessagesList() {
       return "Yesterday";
     } else {
       return date.toLocaleDateString();
+    }
+  };
+
+  const renderAttachment = (message: Message) => {
+    if (!message.attachment_url) return null;
+    
+    switch (message.attachment_type) {
+      case 'image':
+        return (
+          <div className="mt-2 mb-1 rounded overflow-hidden max-w-xs">
+            <img 
+              src={message.attachment_url} 
+              alt="Image attachment" 
+              className="max-w-full h-auto object-contain"
+              onLoad={() => messagesEndRef.current?.scrollIntoView()}
+            />
+          </div>
+        );
+      case 'video':
+        return (
+          <div className="mt-2 mb-1 rounded overflow-hidden max-w-xs">
+            <video 
+              src={message.attachment_url} 
+              controls 
+              className="max-w-full h-auto"
+              onLoadedMetadata={() => messagesEndRef.current?.scrollIntoView()}
+            />
+          </div>
+        );
+      default:
+        return (
+          <a 
+            href={message.attachment_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="mt-2 mb-1 flex items-center p-2 bg-white rounded border text-blue-600 hover:text-blue-800"
+          >
+            <File className="h-4 w-4 mr-2" />
+            <span className="text-xs truncate">Download attachment</span>
+          </a>
+        );
     }
   };
 
@@ -72,7 +114,8 @@ export function MessagesList() {
                   {sender?.display_name || 'Unknown User'}
                 </p>
               )}
-              <p className="text-sm">{message.content}</p>
+              {message.content && <p className="text-sm">{message.content}</p>}
+              {renderAttachment(message)}
               <p className="text-[10px] text-gray-600 text-right mt-1">
                 {formatTime(message.created_at)}
               </p>

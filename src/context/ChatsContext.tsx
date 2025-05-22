@@ -1,8 +1,15 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Chat, Message, User } from '@/types/chat';
 import { toast } from '@/components/ui/sonner';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 interface ChatsContextProps {
   chats: Chat[];
@@ -18,178 +25,283 @@ interface ChatsContextProps {
 
 const ChatsContext = createContext<ChatsContextProps | undefined>(undefined);
 
-const mockUsers: User[] = [
-  {
-    id: '1',
-    email: 'user1@example.com',
-    display_name: 'Periskope',
-    avatar_url: 'https://i.pravatar.cc/150?img=1',
-    created_at: new Date().toISOString(),
-    phone_number: '+919718 44008',
-    status: 'online',
-  },
-  {
-    id: '2',
-    email: 'user2@example.com',
-    display_name: 'Roshnag Airtel',
-    avatar_url: 'https://i.pravatar.cc/150?img=2',
-    created_at: new Date().toISOString(),
-    phone_number: '+91 63646 47925',
-  },
-];
-
-// Generate mock chats
-const mockChats: Chat[] = [
-  {
-    id: '1',
-    name: 'Test Skope Final 5',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    is_group: false,
-    type: 'demo',
-    unread_count: 0,
-  },
-  {
-    id: '2',
-    name: 'Periskope Team Chat',
-    created_at: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(),
-    updated_at: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(),
-    is_group: true,
-    type: 'internal',
-    unread_count: 0,
-  },
-  {
-    id: '3',
-    name: '+91 99999 99999',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    is_group: false,
-    type: 'signup',
-    unread_count: 0,
-  },
-  {
-    id: '4',
-    name: 'Test Demo17',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    is_group: false,
-    type: 'content',
-    unread_count: 0,
-  },
-  {
-    id: '5',
-    name: 'Test El Centro',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    is_group: true,
-    type: 'demo',
-    unread_count: 0,
-  },
-];
-
-// Generate mock messages
-const generateMockMessages = (chatId: string): Message[] => {
-  const mockMessages: Message[] = [];
-  const baseDate = new Date();
-  
-  // Add some messages for chat 2
-  if (chatId === '2') {
-    mockMessages.push({
-      id: '201',
-      chat_id: '2',
-      sender_id: '1',
-      content: 'hello',
-      created_at: new Date(baseDate.setMinutes(baseDate.getMinutes() - 5)).toISOString(),
-    });
-  }
-  
-  // Add messages for chat 5
-  if (chatId === '5') {
-    mockMessages.push({
-      id: '501',
-      chat_id: '5',
-      sender_id: '1',
-      content: 'test el centro',
-      created_at: new Date(baseDate.setMinutes(baseDate.getMinutes() - 10)).toISOString(),
-    });
-    mockMessages.push({
-      id: '502',
-      chat_id: '5',
-      sender_id: '2',
-      content: 'Hello, Livonia!',
-      created_at: new Date(baseDate.setMinutes(baseDate.getMinutes() - 20)).toISOString(),
-    });
-  }
-  
-  return mockMessages;
-};
-
 export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [chats, setChats] = useState<Chat[]>(mockChats);
-  const [filteredChats, setFilteredChats] = useState<Chat[]>(mockChats);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
   const [currentChat, setCurrentChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [messageSubscription, setMessageSubscription] = useState<any>(null);
 
+  // Fetch users
   useEffect(() => {
-    // Mock loading chats
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    const fetchUsers = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*');
+          
+        if (error) throw error;
+        
+        if (data) {
+          setUsers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    fetchUsers();
   }, [user]);
 
+  // Fetch chats
   useEffect(() => {
-    if (currentChat) {
-      // Load messages for current chat
-      setMessages(generateMockMessages(currentChat.id));
+    const fetchChats = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        // Get all chats where the current user is a member
+        const { data: chatMembers, error: chatMembersError } = await supabase
+          .from('chat_members')
+          .select('chat_id')
+          .eq('user_id', user.id);
+          
+        if (chatMembersError) throw chatMembersError;
+        
+        if (chatMembers && chatMembers.length > 0) {
+          const chatIds = chatMembers.map(member => member.chat_id);
+          
+          // Fetch chats
+          const { data: chatsData, error: chatsError } = await supabase
+            .from('chats')
+            .select('*')
+            .in('id', chatIds)
+            .order('updated_at', { ascending: false });
+            
+          if (chatsError) throw chatsError;
+          
+          if (chatsData) {
+            // Fetch last message for each chat
+            const chatsWithLastMessage = await Promise.all(
+              chatsData.map(async (chat) => {
+                const { data: lastMessageData } = await supabase
+                  .from('messages')
+                  .select('*')
+                  .eq('chat_id', chat.id)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .single();
+                  
+                return {
+                  ...chat,
+                  last_message: lastMessageData || undefined
+                };
+              })
+            );
+            
+            setChats(chatsWithLastMessage);
+            setFilteredChats(chatsWithLastMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+        toast.error('Failed to load chats');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchChats();
+  }, [user]);
+
+  // Subscribe to chat changes
+  useEffect(() => {
+    if (!user) return;
+    
+    const subscription = supabase
+      .channel('public:chats')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'chats' 
+      }, async (payload) => {
+        // Check if this is a chat the user is part of
+        const { data } = await supabase
+          .from('chat_members')
+          .select('chat_id')
+          .eq('chat_id', payload.new.id)
+          .eq('user_id', user.id)
+          .single();
+          
+        if (data) {
+          // Refresh chats
+          const { data: updatedChat } = await supabase
+            .from('chats')
+            .select('*')
+            .eq('id', payload.new.id)
+            .single();
+            
+          if (updatedChat) {
+            setChats(prev => {
+              const exists = prev.some(chat => chat.id === updatedChat.id);
+              if (exists) {
+                return prev.map(chat => 
+                  chat.id === updatedChat.id ? updatedChat : chat
+                );
+              } else {
+                return [...prev, updatedChat];
+              }
+            });
+            
+            setFilteredChats(prev => {
+              const exists = prev.some(chat => chat.id === updatedChat.id);
+              if (exists) {
+                return prev.map(chat => 
+                  chat.id === updatedChat.id ? updatedChat : chat
+                );
+              } else {
+                return [...prev, updatedChat];
+              }
+            });
+          }
+        }
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [user]);
+
+  // Fetch messages when current chat changes
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!currentChat) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('chat_id', currentChat.id)
+          .order('created_at', { ascending: true });
+          
+        if (error) throw error;
+        
+        if (data) {
+          setMessages(data);
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+        toast.error('Failed to load messages');
+      }
+    };
+    
+    fetchMessages();
+    
+    // Clean up previous subscription if any
+    if (messageSubscription) {
+      supabase.removeChannel(messageSubscription);
     }
+    
+    // Subscribe to message changes for current chat
+    if (currentChat) {
+      const subscription = supabase
+        .channel(`messages:${currentChat.id}`)
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `chat_id=eq.${currentChat.id}`
+        }, (payload) => {
+          setMessages(prev => [...prev, payload.new as Message]);
+        })
+        .subscribe();
+        
+      setMessageSubscription(subscription);
+    }
+    
+    return () => {
+      if (messageSubscription) {
+        supabase.removeChannel(messageSubscription);
+      }
+    };
   }, [currentChat]);
 
   const sendMessage = async (content: string, attachment?: File) => {
     if (!currentChat || !user) return;
     
     try {
-      const newMessage: Message = {
-        id: `msg_${Date.now()}`,
-        chat_id: currentChat.id,
-        sender_id: user.id,
-        content: content,
-        created_at: new Date().toISOString(),
-        attachment_url: attachment ? URL.createObjectURL(attachment) : undefined,
-        attachment_type: attachment ? 
-          attachment.type.includes('image') ? 'image' : 
-          attachment.type.includes('video') ? 'video' : 'document' : 
-          undefined,
-      };
+      let attachmentUrl;
+      let attachmentType;
       
-      // Update messages locally
-      setMessages(prevMessages => [...prevMessages, newMessage]);
+      // Upload attachment if any
+      if (attachment) {
+        const fileExt = attachment.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase
+          .storage
+          .from('attachments')
+          .upload(filePath, attachment);
+          
+        if (uploadError) throw uploadError;
+        
+        if (uploadData) {
+          const { data: { publicUrl } } = supabase
+            .storage
+            .from('attachments')
+            .getPublicUrl(filePath);
+            
+          attachmentUrl = publicUrl;
+          
+          if (attachment.type.includes('image')) {
+            attachmentType = 'image';
+          } else if (attachment.type.includes('video')) {
+            attachmentType = 'video';
+          } else {
+            attachmentType = 'document';
+          }
+        }
+      }
       
-      // Update the last message in chats
-      setChats(prevChats => 
-        prevChats.map(chat => 
-          chat.id === currentChat.id 
-            ? { ...chat, last_message: newMessage, updated_at: new Date().toISOString() } 
-            : chat
-        )
-      );
+      // Insert message
+      const { data: newMessage, error } = await supabase
+        .from('messages')
+        .insert({
+          chat_id: currentChat.id,
+          sender_id: user.id,
+          content,
+          attachment_url: attachmentUrl,
+          attachment_type: attachmentType,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
       
-      setFilteredChats(prevChats => 
-        prevChats.map(chat => 
-          chat.id === currentChat.id 
-            ? { ...chat, last_message: newMessage, updated_at: new Date().toISOString() } 
-            : chat
-        )
-      );
+      // Update chat's last_message and updated_at
+      await supabase
+        .from('chats')
+        .update({
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentChat.id);
+      
     } catch (error) {
+      console.error('Error sending message:', error);
       toast.error('Failed to send message');
     }
   };
 
-  const filterChats = (query: string) => {
+  const filterChats = useCallback((query: string) => {
     if (!query.trim()) {
       setFilteredChats(chats);
       return;
@@ -200,7 +312,7 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
     
     setFilteredChats(filtered);
-  };
+  }, [chats]);
 
   return (
     <ChatsContext.Provider 
@@ -210,7 +322,7 @@ export const ChatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         currentChat, 
         setCurrentChat, 
         messages, 
-        users: mockUsers,
+        users,
         sendMessage, 
         loading,
         filterChats
